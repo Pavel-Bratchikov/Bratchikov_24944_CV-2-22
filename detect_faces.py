@@ -1,22 +1,25 @@
-import argparse, os
+import argparse
+import os
 from typing import Tuple
 import cv2
 import numpy as np
 from sklearn.datasets import fetch_lfw_people
 
 
-def nms(boxes, iou_thr=0.3):
+def nms(boxes):
     """
     Perform Non-Maximum Suppression (NMS) to remove overlapping bounding boxes.
 
+    This function eliminates redundant bounding boxes that significantly overlap
+    with larger ones, keeping only the most confident detections. It uses the
+    Intersection over Union (IoU) metric to decide whether to keep or suppress a box.
+
     Args:
-        boxes (list): List of bounding boxes [x, y, w, h].
-        iou_thr (float): IoU threshold for suppression.
+        boxes (list): A list of bounding boxes in the format [x, y, w, h].
 
     Returns:
-        list: Filtered bounding boxes.
+        list: A filtered list of bounding boxes after applying NMS.
     """
-
     if not boxes:
         return []
     
@@ -36,12 +39,30 @@ def nms(boxes, iou_thr=0.3):
         yy2 = np.minimum(y2[i], y2[order[1:]])
         inter = np.maximum(0, xx2 - xx1) * np.maximum(0, yy2 - yy1)
         iou = inter / (areas[i] + areas[order[1:]] - inter + 1e-6)
-        inds = np.where(iou <= iou_thr)[0]
+        inds = np.where(iou <= 0.3)[0]
         order = order[inds + 1]
+
     return boxes[keep].tolist()
 
 
 def load_image_from_path(path: str) -> Tuple[np.ndarray, str]:
+    """
+    Load an image from a given path and convert it from BGR to RGB format.
+
+    OpenCV loads images in BGR format by default, but many visualization
+    libraries (e.g., matplotlib) use RGB, so conversion is necessary.
+
+    Args:
+        path (str): Path to the image file.
+
+    Returns:
+        Tuple[np.ndarray, str]:
+            - The image in RGB format (numpy array).
+            - The base name of the file (string).
+
+    Raises:
+        FileNotFoundError: If the image file cannot be loaded.
+    """
     bgr = cv2.imread(path)
 
     if bgr is None:
@@ -53,19 +74,58 @@ def load_image_from_path(path: str) -> Tuple[np.ndarray, str]:
 
 
 def improve_gray_contrast(gray: np.ndarray) -> np.ndarray:
+    """
+    Enhance the contrast of a grayscale image using CLAHE.
+
+    CLAHE (Contrast Limited Adaptive Histogram Equalization) improves local
+    contrast and reduces the effect of non-uniform lighting, making it
+    easier for face detection algorithms to identify facial features.
+
+    Args:
+        gray (np.ndarray): Input grayscale image.
+
+    Returns:
+        np.ndarray: The contrast-enhanced grayscale image.
+    """
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    
+
     return clahe.apply(gray)
 
 
 def main():
+    """
+    Main function for face detection with optional eyes and profile detection.
+
+    Steps:
+        1. Parse command-line arguments.
+        2. Load image either from local path or from the LFW dataset.
+        3. Convert to grayscale and apply preprocessing (CLAHE + Gaussian blur).
+        4. Detect frontal faces using Haar Cascade.
+        5. Optionally detect profile faces.
+        6. Optionally filter faces by checking for eyes.
+        7. Apply Non-Maximum Suppression (NMS) to remove duplicate detections.
+        8. Draw bounding boxes around detected faces.
+        9. Save the result to the output file.
+
+    Command-line arguments:
+        --image, -i (str): Path to a local image file.
+        --lfw_index (int): Index of an image from sklearn.datasets.fetch_lfw_people.
+        --scale (float): Scale factor for face detection pyramid (default=1.1).
+        --neighbors (int): Min neighbors parameter for detection (default=5).
+        --save (str): Output file name for saving the processed image (required).
+        --check_eyes (flag): If set, keeps only faces with at least one detected eye.
+        --with_profiles (flag): If set, detects profile faces in addition to frontal.
+
+    Prints:
+        - Number of detected faces.
+        - Confirmation message with the path of the saved result.
+    """
     p = argparse.ArgumentParser(description="Face detection with optional eyes and profile detection.")
     p.add_argument("--image", "-i", type=str, help="Path to your image.")
     p.add_argument("--lfw_index", type=int, help="Index of image from sklearn.datasets.fetch_lfw_people.")
     p.add_argument("--scale", type=float, default=1.1, help="scaleFactor for detectMultiScale (default=1.1).")
     p.add_argument("--neighbors", type=int, default=5, help="minNeighbors for detectMultiScale (default=5).")
     p.add_argument("--save", type=str, required=True, help="Output file name to save the result (required).")
-    p.add_argument("--minsize", type=int, default=50, help="Minimum face size in pixels.")
     p.add_argument("--check_eyes", action="store_true", help="Filter detected faces by presence of eyes.")
     p.add_argument("--with_profiles", action="store_true", help="Detect profile faces in addition to frontal.")
     args = p.parse_args()
@@ -92,7 +152,7 @@ def main():
         gray,
         scaleFactor=args.scale,
         minNeighbors=args.neighbors,
-        minSize=(args.minsize, args.minsize)
+        minSize=(50, 50)
     )
 
     faces = list(faces)
@@ -106,7 +166,7 @@ def main():
             gray,
             scaleFactor=args.scale,
             minNeighbors=args.neighbors,
-            minSize=(args.minsize, args.minsize)
+            minSize=(50, 50)
         )
 
         faces.extend(prof_faces)
