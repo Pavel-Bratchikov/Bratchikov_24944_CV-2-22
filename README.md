@@ -40,14 +40,21 @@ python detect_faces.py --image path/to/image.jpg --with_profiles --save output.p
 ```
 
 Command-line arguments: 
---image or -i: path to the local image to process. Either this or --lfw_index must be provided./n 
---lfw_index: index of an image from the LFW dataset (fetch_lfw_people)./n
---scale: scaleFactor for detectMultiScale. Default is 1.1. Smaller = more accurate detection./n
---neighbors: minNeighbors for detectMultiScale. Default is 5. Higher = fewer false positives./n
---minsize: minimum face size in pixels. Default is 50./n
---check_eyes: optional flag. If present, filters detected faces to keep only those with at least one detected eye./n
---with_profiles: optional flag. If present, detects profile faces in addition to frontal faces./n
---save: output file name for the processed image. This argument is required./n
+--image or -i: path to the local image to process. Either this or --lfw_index must be provided.
+
+--lfw_index: index of an image from the LFW dataset (fetch_lfw_people).
+
+--scale: scaleFactor for detectMultiScale. Default is 1.1. Smaller = more accurate detection.
+
+--neighbors: minNeighbors for detectMultiScale. Default is 5. Higher = fwer false positives.
+
+--minsize: minimum face size in pixels. Default is 50.
+
+--check_eyes: optional flag. If present, filters detected faces to keep only those with at least one detected eye.
+
+--with_profiles: optional flag. If present, detects profile faces in addition to frontal faces.
+
+--save: output file name for the processed image. This argument is required.
 
 Exmple for Windows:
 ```bash
