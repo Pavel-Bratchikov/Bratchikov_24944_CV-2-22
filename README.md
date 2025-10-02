@@ -48,8 +48,6 @@ Command-line arguments:
 
 --neighbors: minNeighbors for detectMultiScale. Default is 5. Higher = fwer false positives.
 
---minsize: minimum face size in pixels. Default is 50.
-
 --check_eyes: optional flag. If present, filters detected faces to keep only those with at least one detected eye.
 
 --with_profiles: optional flag. If present, detects profile faces in addition to frontal faces.
